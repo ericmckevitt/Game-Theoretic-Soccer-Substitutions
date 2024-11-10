@@ -1,0 +1,9 @@
+TeamName,AttackStat,MidfieldStat,DefenseStat
+ManchesterCity,85,86,86
+RealMadrid,85,87,84
+ManchesterUnited,81,82,80
+FCDallas,72,69,69
+WestHamUnited,79,80,79
+Tottenham,84,81,79
+GoodAttackBadDefense,100,0,0
+BadAttackGoodDefense,0,0,100
