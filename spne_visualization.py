@@ -24,21 +24,28 @@ def generate_game_tree(depth, current_node, current_turn='i', max_depth=4):
     if depth >= max_depth:  # Base case: terminal node
         return
     
-    # Calculate new expected goals for both formations for current player
-    if current_turn == 'i':
-        new_goals_i_1 = max(current_node.expected_goals_i + s_ai * diminishing_returns(4) - s_dj * diminishing_returns(3), 0)
-        new_goals_i_2 = max(current_node.expected_goals_i + s_ai * diminishing_returns(5) - s_dj * diminishing_returns(2), 0)
-        new_goals_j = current_node.expected_goals_j
-        # Create children nodes for both formations
-        child1 = GameTreeNode('j', new_goals_i_1, new_goals_j, formation='4-3-3')
-        child2 = GameTreeNode('j', new_goals_i_2, new_goals_j, formation='5-3-2')
+    # Enforce zero expected goals for the first two layers (depth 0 and depth 1)
+    if depth < 2:
+        new_goals_i = 0
+        new_goals_j = 0
+        child1 = GameTreeNode('j' if current_turn == 'i' else 'i', new_goals_i, new_goals_j, formation='4-3-3')
+        child2 = GameTreeNode('j' if current_turn == 'i' else 'i', new_goals_i, new_goals_j, formation='5-3-2')
     else:
-        new_goals_j_1 = max(current_node.expected_goals_j + s_aj * diminishing_returns(4) - s_di * diminishing_returns(3), 0)
-        new_goals_j_2 = max(current_node.expected_goals_j + s_aj * diminishing_returns(5) - s_di * diminishing_returns(2), 0)
-        new_goals_i = current_node.expected_goals_i
-        # Create children nodes for both formations
-        child1 = GameTreeNode('i', new_goals_i, new_goals_j_1, formation='4-3-3')
-        child2 = GameTreeNode('i', new_goals_i, new_goals_j_2, formation='5-3-2')
+        # Calculate new expected goals for formations after the first two layers
+        if current_turn == 'i':
+            new_goals_i_1 = max(current_node.expected_goals_i + s_ai * diminishing_returns(4) - s_dj * diminishing_returns(3), 0)
+            new_goals_i_2 = max(current_node.expected_goals_i + s_ai * diminishing_returns(5) - s_dj * diminishing_returns(2), 0)
+            new_goals_j = current_node.expected_goals_j
+            # Create children nodes for both formations
+            child1 = GameTreeNode('j', new_goals_i_1, new_goals_j, formation='4-3-3')
+            child2 = GameTreeNode('j', new_goals_i_2, new_goals_j, formation='5-3-2')
+        else:
+            new_goals_j_1 = max(current_node.expected_goals_j + s_aj * diminishing_returns(4) - s_di * diminishing_returns(3), 0)
+            new_goals_j_2 = max(current_node.expected_goals_j + s_aj * diminishing_returns(5) - s_di * diminishing_returns(2), 0)
+            new_goals_i = current_node.expected_goals_i
+            # Create children nodes for both formations
+            child1 = GameTreeNode('i', new_goals_i, new_goals_j_1, formation='4-3-3')
+            child2 = GameTreeNode('i', new_goals_i, new_goals_j_2, formation='5-3-2')
 
     # Add children to the current node
     current_node.add_child(child1)
@@ -101,7 +108,7 @@ def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, d
     return graph, pos
 
 # Initialize parameters and root node
-s_ai, s_di, s_aj, s_dj = 0.76, 0.88, 0.81, 0.95
+s_ai, s_di, s_aj, s_dj = 0.76, 0.88, 0.71, 0.35
 root_node = GameTreeNode('i', 0, 0)
 generate_game_tree(0, root_node)
 find_spne(root_node)
