@@ -73,24 +73,30 @@ def find_spne(node):
     return node.utility
 
 # Visualization with networkx
-def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, dx=1.0):
+def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, dx=1.0, parent_edge_label=None, is_root=True):
     if graph is None:
         graph = nx.DiGraph()
         pos = {}
 
     # Create a unique identifier for internal use and a separate display label
     unique_id = f"{node.turn}_{id(node)}"  # Unique internal ID for the node
-    display_label = f"{node.turn}, {node.expected_goals_i:.2f}, {node.expected_goals_j:.2f}\n({node.formation})"
+    display_label = f"{node.turn}, {node.expected_goals_i:.2f}, {node.expected_goals_j:.2f}"
+    
+    # Set node color: green for the root node or if it is part of the SPNE path, otherwise black
+    node_color = 'green' if is_root or node.is_optimal else 'black'
     
     # Add the node using the unique identifier but display only the label
-    graph.add_node(unique_id, label=display_label, color='green' if node.is_optimal else 'black')
+    graph.add_node(unique_id, label=display_label, color=node_color)
     pos[unique_id] = (x, -level)
     
     if parent:
+        # Add edge from parent to current node with the formation as the label
         graph.add_edge(parent, unique_id)
+        nx.set_edge_attributes(graph, {(parent, unique_id): parent_edge_label}, "label")
 
     for i, child in enumerate(node.children):
-        visualize_game_tree(child, graph, unique_id, pos, level + 1, x - dx / 2 + i * dx, dx / 2)
+        # Pass the formation of the child node as the label for the edge
+        visualize_game_tree(child, graph, unique_id, pos, level + 1, x - dx / 2 + i * dx, dx / 2, child.formation, is_root=False)
     
     return graph, pos
 
@@ -103,9 +109,11 @@ find_spne(root_node)
 # Visualize the game tree
 graph, pos = visualize_game_tree(root_node)
 node_colors = [graph.nodes[node]['color'] for node in graph.nodes()]
-node_labels = nx.get_node_attributes(graph, 'label')  # Retrieve labels for display
+node_labels = nx.get_node_attributes(graph, 'label')  # Retrieve node labels for display
+edge_labels = nx.get_edge_attributes(graph, 'label')  # Retrieve edge labels for display
 
 plt.figure(figsize=(12, 8))
 nx.draw(graph, pos, labels=node_labels, with_labels=True, node_color=node_colors, edge_color='gray', node_size=2000, font_size=6, font_color='white')
-plt.title("Game Tree Visualization with Optimal Subgames Highlighted")
+nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_size=8)  # Draw edge labels
+plt.title("Game Tree Visualization with Root Node Always Green")
 plt.show()
