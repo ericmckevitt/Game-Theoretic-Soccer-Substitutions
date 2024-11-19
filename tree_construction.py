@@ -17,10 +17,10 @@ class GameTreeNode:
         self.children.append(child_node)
 
 # Define initial skill levels for teams i and j
-s_ai = 0.8  # Skill of team i in attacking
-s_di = 0.6  # Skill of team i in defending
-s_aj = 0.65  # Skill of team j in attacking
-s_dj = 0.75  # Skill of team j in defending
+s_ai = 0.5  # Skill of team i in attacking
+s_di = 0.5  # Skill of team i in defending
+s_aj = 0.5  # Skill of team j in attacking
+s_dj = 0.5  # Skill of team j in defending
 
 # Generate the game tree
 def generate_game_tree(depth, current_node, current_turn='i', max_depth=3):
@@ -63,4 +63,45 @@ def display_game_tree(node, depth=0):
         display_game_tree(child, depth + 1)
 
 # Display the generated game tree
-display_game_tree(root_node)
+# display_game_tree(root_node)
+
+def find_spne(node):
+    # Base case: if the node is a terminal node (no children)
+    if not node.children:
+        # Utility for team 'i' is calculated as (G_i - G_j)
+        node.utility = node.expected_goals_i - node.expected_goals_j
+        return node.utility
+
+    # Recursive case: calculate SPNE for each child node
+    child_utilities = []
+    for child in node.children:
+        utility = find_spne(child)
+        child_utilities.append((utility, child))
+
+    # Select the move with the maximum utility based on whose turn it is
+    if node.turn == 'i':
+        # Maximize team 'i's utility
+        best_child = max(child_utilities, key=lambda x: x[0])
+    else:
+        # Minimize team 'i's utility (equivalent to maximizing team 'j's utility)
+        best_child = min(child_utilities, key=lambda x: x[0])
+
+    # Update the node's utility to reflect the optimal choice
+    node.utility = best_child[0]
+    node.best_child = best_child[1]  # Track the best move
+
+    return node.utility
+
+def display_spne_path(node, depth=0):
+    # Display the node and its optimal move
+    print(f"{' ' * (depth * 2)}Node: ({node.turn}, {node.expected_goals_i:.3f}, {node.expected_goals_j:.3f}), Utility: {node.utility:.3f}")
+    if hasattr(node, 'best_child') and node.best_child:
+        formation = getattr(node.best_child, 'formation', 'N/A')  # Safely get formation
+        print(f"{' ' * (depth * 2)}--> Optimal Move: Formation = {formation}")
+        display_spne_path(node.best_child, depth + 1)
+
+# Calculate the SPNE starting from the root node
+find_spne(root_node)
+
+# Display the optimal path (SPNE)
+display_spne_path(root_node)
