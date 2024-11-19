@@ -6,10 +6,11 @@ def diminishing_returns(x):
 
 # Define a class for game tree nodes
 class GameTreeNode:
-    def __init__(self, turn, expected_goals_i, expected_goals_j):
+    def __init__(self, turn, expected_goals_i, expected_goals_j, formation=None):
         self.turn = turn  # Whose turn it is to make a decision (i or j)
         self.expected_goals_i = expected_goals_i  # Expected goals for team i
         self.expected_goals_j = expected_goals_j  # Expected goals for team j
+        self.formation = formation  # Formation chosen to reach this node
         self.children = []  # Child nodes (branches)
 
     def add_child(self, child_node):
@@ -32,15 +33,15 @@ def generate_game_tree(depth, current_node, current_turn='i', max_depth=3):
         new_goals_i_2 = max(current_node.expected_goals_i + s_ai * diminishing_returns(5) - s_dj * diminishing_returns(2), 0)
         new_goals_j = current_node.expected_goals_j
         # Create children nodes for both formations
-        child1 = GameTreeNode('j', new_goals_i_1, new_goals_j)
-        child2 = GameTreeNode('j', new_goals_i_2, new_goals_j)
+        child1 = GameTreeNode('j', new_goals_i_1, new_goals_j, formation='4-3-3')
+        child2 = GameTreeNode('j', new_goals_i_2, new_goals_j, formation='5-3-2')
     else:
         new_goals_j_1 = max(current_node.expected_goals_j + s_aj * diminishing_returns(4) - s_di * diminishing_returns(3), 0)
         new_goals_j_2 = max(current_node.expected_goals_j + s_aj * diminishing_returns(5) - s_di * diminishing_returns(2), 0)
         new_goals_i = current_node.expected_goals_i
         # Create children nodes for both formations
-        child1 = GameTreeNode('i', new_goals_i, new_goals_j_1)
-        child2 = GameTreeNode('i', new_goals_i, new_goals_j_2)
+        child1 = GameTreeNode('i', new_goals_i, new_goals_j_1, formation='4-3-3')
+        child2 = GameTreeNode('i', new_goals_i, new_goals_j_2, formation='5-3-2')
 
     # Add children to the current node
     current_node.add_child(child1)
@@ -56,8 +57,8 @@ generate_game_tree(0, root_node)
 
 # Function to display the game tree
 def display_game_tree(node, depth=0):
-    # print(f"{' ' * (depth * 2)}Node: Turn = {node.turn}, Expected Goals (i) = {node.expected_goals_i:.2f}, Expected Goals (j) = {node.expected_goals_j:.2f}")
-    print(f"{' ' * (depth * 2)}Node: ({node.turn}, {node.expected_goals_i:.3f}, {node.expected_goals_j:.3f})")
+    formation_info = f", Formation = {node.formation}" if node.formation else ""
+    print(f"{' ' * (depth * 2)}Node: ({node.turn}, {node.expected_goals_i:.3f}, {node.expected_goals_j:.3f}{formation_info})")
     for child in node.children:
         display_game_tree(child, depth + 1)
 
