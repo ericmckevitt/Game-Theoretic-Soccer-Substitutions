@@ -101,7 +101,7 @@ def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, d
     return graph, pos
 
 # Initialize parameters and root node
-s_ai, s_di, s_aj, s_dj = 0.9, 0.7, 0.5, 0.9
+s_ai, s_di, s_aj, s_dj = 0.76, 0.88, 0.81, 0.95
 root_node = GameTreeNode('i', 0, 0)
 generate_game_tree(0, root_node)
 find_spne(root_node)
@@ -113,7 +113,7 @@ node_labels = nx.get_node_attributes(graph, 'label')  # Retrieve node labels for
 edge_labels = nx.get_edge_attributes(graph, 'label')  # Retrieve edge labels for display
 
 plt.figure(figsize=(12, 8))
-nx.draw(graph, pos, labels=node_labels, with_labels=True, node_color=node_colors, edge_color='gray', node_size=2000, font_size=6, font_color='white')
+nx.draw(graph, pos, labels=node_labels, with_labels=True, node_color=node_colors, edge_color='gray', node_size=1500, font_size=5, font_color='white')
 nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_size=8)  # Draw edge labels
 plt.title("Game Tree Visualization with Root Node Always Green")
 plt.show()
