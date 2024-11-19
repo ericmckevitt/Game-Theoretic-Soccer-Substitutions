@@ -20,7 +20,7 @@ class GameTreeNode:
         self.children.append(child_node)
 
 # Generate the game tree (similar logic as before)
-def generate_game_tree(depth, current_node, current_turn='i', max_depth=3):
+def generate_game_tree(depth, current_node, current_turn='i', max_depth=4):
     if depth >= max_depth:  # Base case: terminal node
         return
     
@@ -78,20 +78,24 @@ def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, d
         graph = nx.DiGraph()
         pos = {}
 
-    node_label = f"{node.turn}, {node.expected_goals_i:.2f}, {node.expected_goals_j:.2f}\n({node.formation})"
-    graph.add_node(node_label, color='green' if node.is_optimal else 'black')
-    pos[node_label] = (x, -level)
+    # Create a unique identifier for internal use and a separate display label
+    unique_id = f"{node.turn}_{id(node)}"  # Unique internal ID for the node
+    display_label = f"{node.turn}, {node.expected_goals_i:.2f}, {node.expected_goals_j:.2f}\n({node.formation})"
+    
+    # Add the node using the unique identifier but display only the label
+    graph.add_node(unique_id, label=display_label, color='green' if node.is_optimal else 'black')
+    pos[unique_id] = (x, -level)
     
     if parent:
-        graph.add_edge(parent, node_label)
+        graph.add_edge(parent, unique_id)
 
     for i, child in enumerate(node.children):
-        visualize_game_tree(child, graph, node_label, pos, level + 1, x - dx / 2 + i * dx, dx / 2)
+        visualize_game_tree(child, graph, unique_id, pos, level + 1, x - dx / 2 + i * dx, dx / 2)
     
     return graph, pos
 
 # Initialize parameters and root node
-s_ai, s_di, s_aj, s_dj = 0.5, 0.5, 0.5, 0.5
+s_ai, s_di, s_aj, s_dj = 0.9, 0.7, 0.5, 0.9
 root_node = GameTreeNode('i', 0, 0)
 generate_game_tree(0, root_node)
 find_spne(root_node)
@@ -99,8 +103,9 @@ find_spne(root_node)
 # Visualize the game tree
 graph, pos = visualize_game_tree(root_node)
 node_colors = [graph.nodes[node]['color'] for node in graph.nodes()]
+node_labels = nx.get_node_attributes(graph, 'label')  # Retrieve labels for display
 
 plt.figure(figsize=(12, 8))
-nx.draw(graph, pos, with_labels=True, node_color=node_colors, edge_color='gray', node_size=2000, font_size=6, font_color='white')
+nx.draw(graph, pos, labels=node_labels, with_labels=True, node_color=node_colors, edge_color='gray', node_size=2000, font_size=6, font_color='white')
 plt.title("Game Tree Visualization with Optimal Subgames Highlighted")
 plt.show()
