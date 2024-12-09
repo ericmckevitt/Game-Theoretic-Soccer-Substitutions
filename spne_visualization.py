@@ -54,16 +54,16 @@ def generate_game_tree(depth, current_node, current_turn='i', max_depth=5):
     generate_game_tree(depth + 1, child1, 'j' if current_turn == 'i' else 'i', max_depth)
     generate_game_tree(depth + 1, child2, 'j' if current_turn == 'i' else 'i', max_depth)
 
-# SPNE Calculation
-def find_spne(node):
+# SPNE Calculation with Path Retrieval
+def find_spne_with_path(node):
     if not node.children:
         node.utility = node.expected_goals_i - node.expected_goals_j
-        return node.utility
+        return node.utility, [node]
 
     child_utilities = []
     for child in node.children:
-        utility = find_spne(child)
-        child_utilities.append((utility, child))
+        utility, path = find_spne_with_path(child)
+        child_utilities.append((utility, child, path))
 
     # Determine the best child based on the player's turn
     if node.turn == 'i':
@@ -71,12 +71,38 @@ def find_spne(node):
     else:
         best_child = min(child_utilities, key=lambda x: x[0])
 
-    # Update the node's utility and mark only the best child as optimal
+    # Update the node's utility
     node.utility = best_child[0]
     node.best_child = best_child[1]
-    node.best_child.is_optimal = True  # Mark the best child as part of the SPNE path
 
-    return node.utility
+    # Return the utility and path (including the current node)
+    return node.utility, [node] + best_child[2]
+
+# Function to display the SPNE path as text
+def display_spne_path(path):
+    print("SPNE Path:")
+    for step, node in enumerate(path):
+        print(f"Step {step + 1}:")
+        print(f"  Turn: {node.turn}")
+        print(f"  Formation: {node.formation}")
+        print(f"  Expected Goals - Team i: {node.expected_goals_i:.2f}, Team j: {node.expected_goals_j:.2f}")
+        print()
+
+# Function to display the SPNE path as a tuple
+def display_spne_path_as_tuples(path):
+    print("SPNE Path (Optimal Decisions):")
+    for step, node in enumerate(path):
+        # Determine the formations for both teams
+        formation_i = node.formation if node.turn == 'i' else path[step - 1].formation
+        formation_j = node.formation if node.turn == 'j' else path[step - 1].formation if step > 0 else None
+        
+        # Print the tuple and the decision being made
+        print(f"Step {step + 1}: {node.turn}'s turn")
+        print(f"  Decision Tuple: ({node.turn}, {formation_i or 'None'}, {formation_j or 'None'})")
+        if node.formation:
+            print(f"  -> {node.turn} picks formation: {node.formation}")
+        print(f"  Expected Goals - Team i: {node.expected_goals_i:.2f}, Team j: {node.expected_goals_j:.2f}")
+        print()
 
 # Visualization with networkx
 def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, dx=1.0, parent_edge_label=None, is_root=True):
@@ -107,19 +133,28 @@ def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, d
     return graph, pos
 
 # Initialize parameters and root node
+# Initialize parameters and root node
 s_ai, s_di, s_aj, s_dj = 0.909, 0.9, 0.9, 0.91
 root_node = GameTreeNode('i', 0, 0)
+
+# Generate the game tree
 generate_game_tree(0, root_node)
-find_spne(root_node)
+
+# Find the SPNE and retrieve the path
+_, spne_path = find_spne_with_path(root_node)
+
+# Display the SPNE path
+# display_spne_path(spne_path)
+display_spne_path_as_tuples(spne_path)
 
 # Visualize the game tree
-graph, pos = visualize_game_tree(root_node)
-node_colors = [graph.nodes[node]['color'] for node in graph.nodes()]
-node_labels = nx.get_node_attributes(graph, 'label')  # Retrieve node labels for display
-edge_labels = nx.get_edge_attributes(graph, 'label')  # Retrieve edge labels for display
+# graph, pos = visualize_game_tree(root_node)
+# node_colors = [graph.nodes[node]['color'] for node in graph.nodes()]
+# node_labels = nx.get_node_attributes(graph, 'label')  # Retrieve node labels for display
+# edge_labels = nx.get_edge_attributes(graph, 'label')  # Retrieve edge labels for display
 
-plt.figure(figsize=(12, 8))
-nx.draw(graph, pos, labels=node_labels, with_labels=True, node_color=node_colors, edge_color='gray', node_size=1500, font_size=5, font_color='white')
-nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_size=8)  # Draw edge labels
-plt.title("Game Tree Visualization with Root Node Always Green")
-plt.show()
+# plt.figure(figsize=(12, 8))
+# nx.draw(graph, pos, labels=node_labels, with_labels=True, node_color=node_colors, edge_color='gray', node_size=1500, font_size=5, font_color='white')
+# nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_size=8)  # Draw edge labels
+# plt.title("Game Tree Visualization with Root Node Always Green")
+# plt.show()
