@@ -19,8 +19,7 @@ class GameTreeNode:
     def add_child(self, child_node):
         self.children.append(child_node)
 
-# Generate the game tree (similar logic as before)
-def generate_game_tree(depth, current_node, current_turn='i', max_depth=4):
+def generate_game_tree(depth, current_node, current_turn='i', max_depth=5):
     if depth >= max_depth:  # Base case: terminal node
         return
     
@@ -108,7 +107,7 @@ def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, d
     return graph, pos
 
 # Initialize parameters and root node
-s_ai, s_di, s_aj, s_dj = 0.76, 0.88, 0.71, 0.35
+s_ai, s_di, s_aj, s_dj = 0.909, 0.9, 0.9, 0.91
 root_node = GameTreeNode('i', 0, 0)
 generate_game_tree(0, root_node)
 find_spne(root_node)

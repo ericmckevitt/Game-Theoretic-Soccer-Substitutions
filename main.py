@@ -2,7 +2,7 @@ from utilities import Formation, Team, utility
 
 class GameNode:
     def __init__(self, state, player, depth):
-        self.state = state  # Tuple representing the game state (e.g., formations chosen so far)
+        self.state = state  # Tuple representing the game state 
         self.player = player  # Player making the move
         self.children = []  # Subsequent states
         self.utility = None  # Utility value, to be determined later
