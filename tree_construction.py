@@ -101,7 +101,7 @@ def display_spne_path(node, depth=0):
         display_spne_path(node.best_child, depth + 1)
 
 # Calculate the SPNE starting from the root node
-# find_spne(root_node)
+find_spne(root_node)
 
 # # Display the optimal path (SPNE)
-# display_spne_path(root_node)
+display_spne_path(root_node)

@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 def diminishing_returns(x):
     return 1 - math.e ** (-0.7 * x)
 
+allowed_formations = ['4-3-3', '4-4-2', '5-3-2', '4-5-1', '3-5-2']
+# allowed_formations = ['4-4-2', '5-3-2']
+
 # Define a class for game tree nodes
 class GameTreeNode:
     def __init__(self, turn, expected_goals_i, expected_goals_j, formation=None):
@@ -23,41 +26,30 @@ def generate_game_tree(depth, current_node, current_turn='i', max_depth=5):
     if depth >= max_depth:  # Base case: terminal node
         return
     
-    # Enforce zero expected goals for the first two layers (depth 0 and depth 1)
-    if depth < 2:
-        new_goals_i = 0
-        new_goals_j = 0
-        child1 = GameTreeNode('j' if current_turn == 'i' else 'i', new_goals_i, new_goals_j, formation='4-3-3')
-        child2 = GameTreeNode('j' if current_turn == 'i' else 'i', new_goals_i, new_goals_j, formation='5-3-2')
-    else:
-        # Calculate new expected goals for formations after the first two layers
+    for formation in allowed_formations:
+        # Calculate new expected goals for formations
         if current_turn == 'i':
-            new_goals_i_1 = max(current_node.expected_goals_i + s_ai * diminishing_returns(4) - s_dj * diminishing_returns(3), 0)
-            new_goals_i_2 = max(current_node.expected_goals_i + s_ai * diminishing_returns(5) - s_dj * diminishing_returns(2), 0)
+            new_goals_i = max(current_node.expected_goals_i + s_ai * diminishing_returns(int(formation[0])) - s_dj * diminishing_returns(int(formation[2])), 0)
             new_goals_j = current_node.expected_goals_j
-            # Create children nodes for both formations
-            child1 = GameTreeNode('j', new_goals_i_1, new_goals_j, formation='4-3-3')
-            child2 = GameTreeNode('j', new_goals_i_2, new_goals_j, formation='5-3-2')
+            # Create a child node for this formation
+            child = GameTreeNode('j', new_goals_i, new_goals_j, formation=formation)
         else:
-            new_goals_j_1 = max(current_node.expected_goals_j + s_aj * diminishing_returns(4) - s_di * diminishing_returns(3), 0)
-            new_goals_j_2 = max(current_node.expected_goals_j + s_aj * diminishing_returns(5) - s_di * diminishing_returns(2), 0)
+            new_goals_j = max(current_node.expected_goals_j + s_aj * diminishing_returns(int(formation[0])) - s_di * diminishing_returns(int(formation[2])), 0)
             new_goals_i = current_node.expected_goals_i
-            # Create children nodes for both formations
-            child1 = GameTreeNode('i', new_goals_i, new_goals_j_1, formation='4-3-3')
-            child2 = GameTreeNode('i', new_goals_i, new_goals_j_2, formation='5-3-2')
+            # Create a child node for this formation
+            child = GameTreeNode('i', new_goals_i, new_goals_j, formation=formation)
 
-    # Add children to the current node
-    current_node.add_child(child1)
-    current_node.add_child(child2)
+        # Add the child to the current node
+        current_node.add_child(child)
 
-    # Recursively generate tree for each child
-    generate_game_tree(depth + 1, child1, 'j' if current_turn == 'i' else 'i', max_depth)
-    generate_game_tree(depth + 1, child2, 'j' if current_turn == 'i' else 'i', max_depth)
+        # Recursively generate the tree for the child
+        generate_game_tree(depth + 1, child, 'j' if current_turn == 'i' else 'i', max_depth)
 
 # SPNE Calculation with Path Retrieval
 def find_spne_with_path(node):
     if not node.children:
         node.utility = node.expected_goals_i - node.expected_goals_j
+        node.is_optimal = True  # Mark leaf node as part of SPNE
         return node.utility, [node]
 
     child_utilities = []
@@ -75,6 +67,10 @@ def find_spne_with_path(node):
     node.utility = best_child[0]
     node.best_child = best_child[1]
 
+    # Mark this node and the best child as part of the SPNE path
+    node.is_optimal = True
+    best_child[1].is_optimal = True
+
     # Return the utility and path (including the current node)
     return node.utility, [node] + best_child[2]
 
@@ -90,7 +86,7 @@ def display_spne_path(path):
 
 # Function to display the SPNE path as a tuple
 def display_spne_path_as_tuples(path):
-    print("SPNE Path (Optimal Decisions):")
+    print("SPNE Path:\n")
     for step, node in enumerate(path):
         # Determine the formations for both teams
         formation_i = node.formation if node.turn == 'i' else path[step - 1].formation
@@ -114,8 +110,8 @@ def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, d
     unique_id = f"{node.turn}_{id(node)}"  # Unique internal ID for the node
     display_label = f"{node.turn}, {node.expected_goals_i:.2f}, {node.expected_goals_j:.2f}"
     
-    # Set node color: green for the root node or if it is part of the SPNE path, otherwise black
-    node_color = 'green' if is_root or node.is_optimal else 'black'
+    # Set node color: green if it is part of the SPNE path, otherwise black
+    node_color = 'green' if node.is_optimal else 'black'
     
     # Add the node using the unique identifier but display only the label
     graph.add_node(unique_id, label=display_label, color=node_color)
@@ -132,29 +128,62 @@ def visualize_game_tree(node, graph=None, parent=None, pos=None, level=0, x=0, d
     
     return graph, pos
 
-# Initialize parameters and root node
-# Initialize parameters and root node
-s_ai, s_di, s_aj, s_dj = 0.909, 0.9, 0.9, 0.91
-root_node = GameTreeNode('i', 0, 0)
+def find_spne(node):
+    if not node.children:
+        node.utility = node.expected_goals_i - node.expected_goals_j
+        return node.utility
 
-# Generate the game tree
-generate_game_tree(0, root_node)
+    child_utilities = []
+    for child in node.children:
+        utility = find_spne(child)
+        child_utilities.append((utility, child))
 
-# Find the SPNE and retrieve the path
-_, spne_path = find_spne_with_path(root_node)
+    # Determine the best child based on the player's turn
+    if node.turn == 'i':
+        best_child = max(child_utilities, key=lambda x: x[0])
+    else:
+        best_child = min(child_utilities, key=lambda x: x[0])
 
-# Display the SPNE path
-# display_spne_path(spne_path)
-display_spne_path_as_tuples(spne_path)
+    # Update the node's utility and mark only the best child as optimal
+    node.utility = best_child[0]
+    node.best_child = best_child[1]
+    node.best_child.is_optimal = True  # Mark the best child as part of the SPNE path
 
-# Visualize the game tree
-# graph, pos = visualize_game_tree(root_node)
-# node_colors = [graph.nodes[node]['color'] for node in graph.nodes()]
-# node_labels = nx.get_node_attributes(graph, 'label')  # Retrieve node labels for display
-# edge_labels = nx.get_edge_attributes(graph, 'label')  # Retrieve edge labels for display
+    return node.utility
 
-# plt.figure(figsize=(12, 8))
-# nx.draw(graph, pos, labels=node_labels, with_labels=True, node_color=node_colors, edge_color='gray', node_size=1500, font_size=5, font_color='white')
-# nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_size=8)  # Draw edge labels
-# plt.title("Game Tree Visualization with Root Node Always Green")
-# plt.show()
+if __name__ == "__main__":
+    mode = input("Select Text Output (t) or Graphical Output (g): ").lower()
+    while mode not in ["g", "t"]:
+        print("Invalid selection.")
+        mode = input("Select Text Output (t) or Graphical Output (g): ").lower()
+
+    # Initialize parameters and root node
+    s_ai, s_di, s_aj, s_dj = 0.76, 0.88, 0.71, 0.35
+    root_node = GameTreeNode('i', 0, 0)
+
+    # Generate the game tree
+    generate_game_tree(0, root_node, max_depth=4)
+    # Find the SPNE and retrieve the path
+    _, spne_path = find_spne_with_path(root_node)
+
+    if mode == "t":
+        
+        # Display the SPNE path
+        display_spne_path_as_tuples(spne_path)
+        
+    elif mode == "g":
+        root_node = GameTreeNode('i', 0, 0)
+        generate_game_tree(0, root_node)
+        find_spne(root_node)
+
+        # Visualize the game tree
+        graph, pos = visualize_game_tree(root_node)
+        node_colors = [graph.nodes[node]['color'] for node in graph.nodes()]
+        node_labels = nx.get_node_attributes(graph, 'label')  # Retrieve node labels for display
+        edge_labels = nx.get_edge_attributes(graph, 'label')  # Retrieve edge labels for display
+
+        plt.figure(figsize=(12, 8))
+        nx.draw(graph, pos, labels=node_labels, with_labels=True, node_color=node_colors, edge_color='gray', node_size=1500, font_size=5, font_color='white')
+        nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_size=8)  # Draw edge labels
+        plt.title("Game Tree Visualization with Root Node Always Green")
+        plt.show()
